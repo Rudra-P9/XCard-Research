@@ -1,3 +1,4 @@
+import { pool, testDatabaseConnection } from './db.js';
 import cors from 'cors';
 import express from 'express';
 
@@ -6,51 +7,6 @@ const PORT = 3000;
 
 app.use(cors());
 app.use(express.json());
-
-type Card = {
-    name: string;
-    issuer: string;
-    rewards: Record<string, number>;
-};
-
-const CARDS: Card[] = [
-    {
-        name: 'Freedom Flex',
-        issuer: 'Chase',
-        rewards: {
-            Dining: 0.03,
-            Groceries: 0.03,
-            Gas: 0.05,
-            Travel: 0.01,
-            Streaming: 0.01,
-            Other: 0.01,
-        },
-    },
-    {
-        name: 'Savor',
-        issuer: 'Capital One',
-        rewards: {
-            Dining: 0.03,
-            Groceries: 0.03,
-            Gas: 0.01,
-            Travel: 0.01,
-            Streaming: 0.03,
-            Other: 0.01,
-        },
-    },
-    {
-        name: 'Sapphire Preferred',
-        issuer: 'Chase',
-        rewards: {
-            Dining: 0.03,
-            Groceries: 0.01,
-            Gas: 0.01,
-            Travel: 0.02,
-            Streaming: 0.01,
-            Other: 0.01,
-        },
-    },
-];
 
 const MERCHANT_CATEGORIES: Record<string, string> = {
     starbucks: 'Dining',
@@ -78,25 +34,40 @@ function getCategory(merchant: string): string {
     return 'Other';
 }
 
-function getBestCard(category: string, amount: number) {
-    let bestCard = CARDS[0];
-    let bestRate = bestCard.rewards[category] ?? bestCard.rewards.Other;
+async function getBestCard(category: string, amount: number) {
+    const result = await pool.query(
+        `
+        SELECT
+            cards.name,
+            cards.issuer,
+            reward_rules.reward_rate
+        FROM cards
+        JOIN reward_rules
+            ON cards.id = reward_rules.card_id
+        WHERE reward_rules.category = $1
+        ORDER BY reward_rules.reward_rate DESC
+        LIMIT 1
+        `,
+        [category]
+    );
 
-    for (const card of CARDS) {
-        const rate = card.rewards[category] ?? card.rewards.Other;
-
-        if (rate > bestRate) {
-            bestCard = card;
-            bestRate = rate;
-        }
+    if (result.rows.length === 0) {
+        return null;
     }
 
+    const bestCard = result.rows[0];
+
     return {
-        card: bestCard,
-        rate: bestRate,
-        reward: Number((amount * bestRate).toFixed(2)),
+        card: {
+            name: bestCard.name,
+            issuer: bestCard.issuer,
+        },
+        rate: Number(bestCard.reward_rate),
+        reward: Number(
+            (amount * Number(bestCard.reward_rate)).toFixed(2)
+        ),
     };
-};
+}
 
 app.get('/', (_req, res) => {
     res.json({
@@ -104,7 +75,7 @@ app.get('/', (_req, res) => {
     });
 });
 
-app.post('/recommend', (req, res) => {
+app.post('/recommend', async (req, res) => {
     const { merchant, amount } = req.body;
 
     if (typeof merchant !== 'string' || merchant.trim() === '') {
@@ -124,7 +95,13 @@ app.post('/recommend', (req, res) => {
     }
 
     const category = getCategory(merchant);
-    const recommendation = getBestCard(category, amount);
+    const recommendation = await getBestCard(category, amount);
+
+    if (!recommendation) {
+        return res.status(404).json({
+            error: `No reward rules found for category: ${category}`,
+        });
+    }
 
     res.json({
         merchant: merchant.trim(),
@@ -136,6 +113,12 @@ app.post('/recommend', (req, res) => {
     });
 });
 
-app.listen(PORT, () => {
-    console.log(`XCard API running on http://localhost:${PORT}`);
-});
+async function startServer() {
+    await testDatabaseConnection();
+
+    app.listen(PORT, () => {
+        console.log(`XCard API running on http://localhost:${PORT}`);
+    });
+}
+
+startServer();
