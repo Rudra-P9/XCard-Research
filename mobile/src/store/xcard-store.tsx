@@ -121,8 +121,8 @@ const DEFAULT_CARDS: CardDetail[] = [
     annualFee: 95,
     isActive: true,
     rewards: {
-      Dining: 0.04,
-      Streaming: 0.04,
+      Dining: 0.03,
+      Streaming: 0.01,
       Groceries: 0.03,
       Gas: 0.01,
       Travel: 0.01,
@@ -306,7 +306,7 @@ export function XCardProvider({ children }: { children: ReactNode }) {
     checkServerHealth();
   }, [apiUrl]);
 
-  const fetchCardsFromBackend = async () => {
+  const fetchCardsFromBackend = async (): Promise<CardDetail[]> => {
     try {
       const dbCards = await apiGetCards();
       if (Array.isArray(dbCards) && dbCards.length > 0) {
@@ -318,25 +318,25 @@ export function XCardProvider({ children }: { children: ReactNode }) {
           const item = grouped.get(row.id)!;
           item.rewards[row.category] = Number(row.reward_rate);
         }
-
-        setCards((prev) =>
-          prev.map((c) => {
-            const dbCard = grouped.get(c.id);
-            if (dbCard) {
-              return {
-                ...c,
-                name: dbCard.name,
-                issuer: dbCard.issuer,
-                rewards: { ...c.rewards, ...dbCard.rewards },
-              };
-            }
-            return c;
-          })
-        );
+        const merged = prev.map((c) => {
+          const dbCard = grouped.get(c.id);
+          if (dbCard) {
+            return {
+              ...c,
+              name: dbCard.name,
+              issuer: dbCard.issuer,
+              rewards: { ...c.rewards, ...dbCard.rewards },
+            };
+          }
+          return c;
+        });
+        setCards(merged);
+        return merged;
       }
     } catch (err) {
       console.warn('Using local card data due to network:', err);
     }
+    return cards;
   };
 
   const toggleCardActive = (id: number) => {
@@ -355,7 +355,12 @@ export function XCardProvider({ children }: { children: ReactNode }) {
 
   const findBestCard = async (merchant: string, amount: number) => {
     const category = resolveCategory(merchant);
-
+    // Ensure we have the latest reward rates from the backend before computing comparisons
+    try {
+      await fetchCardsFromBackend();
+    } catch (e) {
+      console.warn('Failed to sync cards from backend before recommendation:', e);
+    }
     const activeCards = cards.filter((c) => c.isActive);
     const comparisons = activeCards.map((c) => {
       const rate = c.rewards[category] ?? c.rewards['Other'] ?? 0.01;
