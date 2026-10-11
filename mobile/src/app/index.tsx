@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { getRecommendation } from '../api';
 import {
   Alert,
   Pressable,
@@ -110,7 +111,7 @@ export default function HomeScreen() {
     reward: number;
   } | null>(null);
 
-  const handleRecommendation = () => {
+  const handleRecommendation = async () => {
     const trimmedMerchant = merchant.trim();
     const numericAmount = Number.parseFloat(amount);
 
@@ -127,15 +128,31 @@ export default function HomeScreen() {
       return;
     }
 
-    const category = getCategory(trimmedMerchant);
-    const recommendation = getBestCard(category, numericAmount);
+    console.log('Sending recommendation request...');
+    console.log('Merchant:', trimmedMerchant, 'Amount:', numericAmount);
 
-    setResult({
-      category,
-      card: recommendation.card.name,
-      rate: recommendation.rate,
-      reward: recommendation.reward,
-    });
+    try {
+      const recommendation = await getRecommendation(
+        trimmedMerchant,
+        numericAmount
+      );
+
+      setResult({
+        category: recommendation.category,
+        card: recommendation.bestCard,
+        rate: recommendation.rate,
+        reward: recommendation.reward,
+      });
+    } catch (error) {
+      console.error('Recommendation request failed:', error);
+
+      Alert.alert(
+        'Recommendation Error',
+        error instanceof Error
+          ? error.message
+          : 'Unable to get a recommendation.'
+      );
+    }
   };
 
   return (
