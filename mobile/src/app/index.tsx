@@ -10,97 +10,6 @@ import {
   View,
 } from 'react-native';
 
-type Card = {
-  name: string;
-  issuer: string;
-  rewards: Record<string, number>;
-};
-
-const CARDS: Card[] = [
-  {
-    name: 'Freedom Flex',
-    issuer: 'Chase',
-    rewards: {
-      Dining: 0.03,
-      Groceries: 0.03,
-      Gas: 0.05,
-      Travel: 0.01,
-      Streaming: 0.01,
-      Other: 0.01,
-    },
-  },
-  {
-    name: 'Savor',
-    issuer: 'Capital One',
-    rewards: {
-      Dining: 0.03,
-      Groceries: 0.03,
-      Gas: 0.01,
-      Travel: 0.01,
-      Streaming: 0.03,
-      Other: 0.01,
-    },
-  },
-  {
-    name: 'Sapphire Preferred',
-    issuer: 'Chase',
-    rewards: {
-      Dining: 0.03,
-      Groceries: 0.01,
-      Gas: 0.01,
-      Travel: 0.02,
-      Streaming: 0.01,
-      Other: 0.01,
-    },
-  },
-];
-
-const MERCHANT_CATEGORIES: Record<string, string> = {
-  starbucks: 'Dining',
-  mcdonalds: 'Dining',
-  chipotle: 'Dining',
-  shell: 'Gas',
-  chevron: 'Gas',
-  walmart: 'Groceries',
-  target: 'Groceries',
-  netflix: 'Streaming',
-  spotify: 'Streaming',
-  delta: 'Travel',
-  united: 'Travel',
-};
-
-function getCategory(merchant: string): string {
-  const normalizedMerchant = merchant.trim().toLowerCase();
-
-  for (const [name, category] of Object.entries(MERCHANT_CATEGORIES)) {
-    if (normalizedMerchant.includes(name)) {
-      return category;
-    }
-  }
-
-  return 'Other';
-}
-
-function getBestCard(category: string, amount: number) {
-  let bestCard = CARDS[0];
-  let bestRate = bestCard.rewards[category] ?? bestCard.rewards.Other;
-
-  for (const card of CARDS) {
-    const rate = card.rewards[category] ?? card.rewards.Other;
-
-    if (rate > bestRate) {
-      bestCard = card;
-      bestRate = rate;
-    }
-  }
-
-  return {
-    card: bestCard,
-    rate: bestRate,
-    reward: amount * bestRate,
-  };
-}
-
 export default function HomeScreen() {
   const [merchant, setMerchant] = useState('');
   const [amount, setAmount] = useState('');
@@ -237,9 +146,7 @@ export default function HomeScreen() {
       <View style={styles.infoCard}>
         <Text style={styles.infoTitle}>Research Prototype</Text>
         <Text style={styles.infoText}>
-          This prototype currently performs merchant categorization and reward
-          calculations locally. The next step is connecting this screen to an
-          Express backend and PostgreSQL database.
+          This prototype uses an Express backend and PostgreSQL database hosted by Supabase for merchant categorization and reward calculations.
         </Text>
       </View>
     </ScrollView>
