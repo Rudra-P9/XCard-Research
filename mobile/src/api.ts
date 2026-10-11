@@ -29,3 +29,21 @@ export async function getRecommendation(
 
     return response.json();
 }
+
+export type CardReward = {
+    id: number;
+    name: string;
+    issuer: string;
+    category: string;
+    reward_rate: string;
+};
+
+export async function getCards(): Promise<CardReward[]> {
+    const response = await fetch('http://localhost:3000/cards');
+
+    if (!response.ok) {
+        throw new Error('Unable to load card data.');
+    }
+
+    return response.json();
+}
