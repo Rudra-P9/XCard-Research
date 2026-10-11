@@ -75,6 +75,31 @@ app.get('/', (_req, res) => {
     });
 });
 
+app.get('/cards', async (_req, res) => {
+    try {
+        const result = await pool.query(`
+            SELECT
+                cards.id,
+                cards.name,
+                cards.issuer,
+                reward_rules.category,
+                reward_rules.reward_rate
+            FROM cards
+            JOIN reward_rules
+                ON cards.id = reward_rules.card_id
+            ORDER BY cards.id, reward_rules.category
+        `);
+
+        res.json(result.rows);
+    } catch (error) {
+        console.error('Failed to fetch cards:', error);
+
+        res.status(500).json({
+            error: 'Failed to fetch card data.',
+        });
+    }
+});
+
 app.post('/recommend', async (req, res) => {
     const { merchant, amount } = req.body;
 
