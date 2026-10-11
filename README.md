@@ -4,7 +4,7 @@
 
 ## Demo & Repository
 
-**🎥 Demo Video:** [Download the Research Milestone Demo]([./demo/XCard-Research-Demo.mp4](https://github.com/Rudra-P9/XCard-Research/tree/main/demo))
+**🎥 Demo Video:** [Download the Research Milestone Demo](./demo)
 
 **💻 GitHub Repository:** [XCard-Research](https://github.com/Rudra-P9/XCard-Research)
 
